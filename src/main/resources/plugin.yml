@@ -1,0 +1,6 @@
+name: SHTempBlocks
+version: '${project.version}'
+main: org.Cry_Legende.sHTempBlocks.SHTempBlocks
+api-version: '1.20'
+author: Cry_Legende
+depend: [WorldGuard]
