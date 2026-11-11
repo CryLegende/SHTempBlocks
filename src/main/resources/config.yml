@@ -1,3 +1,20 @@
+# ----------------------------------------------------------------#
+#                    Configuration de SHTempBlocks                #
+# ----------------------------------------------------------------#
+#
+# Dans les régions WorldGuard listées dans Regions, un bloc posé n'est pas consommé : il disparaît après Delay
+# secondes, sans drop, avec un hologramme de compte à rebours. Les blocs de Blacklist ne peuvent pas être posés.
+# Les blocs encore en place à l'arrêt du serveur sont retirés au démarrage suivant (temp_blocks.yml, ne pas modifier).
+# Les textes des commandes sont dans messages.yml.
+#
+# Commandes :
+#   /shtempblocks reload    Relit config.yml et messages.yml. Delay ne vaut que pour les blocs posés après le
+#                           rechargement ; un fichier illisible laisse l'ancienne configuration en place.
+#
+# Permissions :
+#   shtempblocks.admin          Toutes les sous-commandes de /shtempblocks (op par défaut).
+#   shtempblocks.admin.reload   /shtempblocks reload (op par défaut).
+
 # Délai en secondes avant que les blocs ne soient supprimés
 Delay: 15
 

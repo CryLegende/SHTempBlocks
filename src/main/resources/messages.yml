@@ -1,0 +1,18 @@
+# ----------------------------------------------------------------#
+#                    Messages de SHTempBlocks                     #
+# ----------------------------------------------------------------#
+#
+# Codes couleur &. Format SkyHand : préfixe de la couleur du type, texte en &7, mots importants dans la couleur du
+# type (&a succès, &e information, &c erreur). Ce fichier est relu par /shtempblocks reload ; une clé absente reprend
+# le texte livré avec le plugin. Le texte des hologrammes est dans config.yml (hologramFormat).
+
+# {subcommands} : les sous-commandes que l'expéditeur a le droit d'utiliser.
+usage: '&7&l« &e&lSH &8&l» &7Utilisation : &e/shtempblocks &7<&e{subcommands}&7>'
+
+no-permission: '&7&l« &c&lSH &8&l» &7Vous n''avez pas la &cpermission &7d''utiliser cette commande.'
+
+# {regions} : régions suivies, {blocked} : blocs interdits, {delay} : délai en secondes
+reloaded: '&7&l« &a&lSH &8&l» &7Configuration rechargée : &a{regions} &7région(s), &a{blocked} &7bloc(s) interdit(s), délai de &a{delay}s &7pour les blocs posés à partir de maintenant.'
+
+# {file} : fichier illisible, {error} : cause. L'ancienne configuration reste en place.
+reload-error: '&7&l« &c&lSH &8&l» &7Rechargement annulé, &c{file} &7est illisible : &c{error}'

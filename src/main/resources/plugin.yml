@@ -3,4 +3,20 @@ version: '${project.version}'
 main: org.Cry_Legende.sHTempBlocks.SHTempBlocks
 api-version: '1.20'
 author: Cry_Legende
+description: Les blocs posés dans certaines régions WorldGuard disparaissent après un délai.
 depend: [WorldGuard]
+
+commands:
+  shtempblocks:
+    description: Administration de SHTempBlocks.
+    usage: /<command> reload
+
+permissions:
+  shtempblocks.admin:
+    description: Administration de SHTempBlocks (toutes les sous-commandes de /shtempblocks).
+    default: op
+    children:
+      shtempblocks.admin.reload: true
+  shtempblocks.admin.reload:
+    description: Recharger config.yml et messages.yml (/shtempblocks reload).
+    default: op

@@ -1,5 +1,10 @@
 package org.Cry_Legende.sHTempBlocks;
 
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -34,13 +39,18 @@ import java.util.ArrayList;
 import java.util.UUID;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
-public class SHTempBlocks extends JavaPlugin implements Listener {
+public class SHTempBlocks extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
 
-    private int delay;
-    private String hologramFormat;
-    private List<String> regions;
-    private List<String> blacklist;
+    // Réglages de config.yml : remplacés tous ensemble par /shtempblocks reload
+    private volatile int delay;
+    private volatile String hologramFormat;
+    private volatile List<String> regions;
+    private volatile List<String> blacklist;
+    private volatile YamlConfiguration messages;
     private List<TempBlockTask> activeTasks = new ArrayList<>();
     private File tempBlocksFile;
     private FileConfiguration tempBlocksConfig;
@@ -49,11 +59,8 @@ public class SHTempBlocks extends JavaPlugin implements Listener {
     public void onEnable() {
         // Chargement de la configuration par défaut
         saveDefaultConfig();
-        FileConfiguration config = getConfig();
-        delay = config.getInt("Delay", 30); // Durée avant suppression (en secondes)
-        hologramFormat = config.getString("hologramFormat", "&d⚠ %time%s");
-        regions = config.getStringList("Regions"); // Format "monde:region"
-        blacklist = config.getStringList("Blacklist");
+        applyConfig(getConfig());
+        messages = loadMessages(new File(getDataFolder(), "messages.yml"));
 
         // Initialisation du fichier YAML pour persister les blocs temporaires
         tempBlocksFile = new File(getDataFolder(), "temp_blocks.yml");
@@ -62,6 +69,107 @@ public class SHTempBlocks extends JavaPlugin implements Listener {
 
         // Enregistrement des listeners
         getServer().getPluginManager().registerEvents(this, this);
+        if (getCommand("shtempblocks") != null) {
+            getCommand("shtempblocks").setExecutor(this);
+            getCommand("shtempblocks").setTabCompleter(this);
+        }
+    }
+
+    /** Lit les réglages de config.yml. Les blocs déjà posés gardent le délai qu'ils avaient à la pose. */
+    private void applyConfig(FileConfiguration config) {
+        delay = config.getInt("Delay", 30); // Durée avant suppression (en secondes)
+        hologramFormat = config.getString("hologramFormat", "&d⚠ %time%s");
+        regions = List.copyOf(config.getStringList("Regions")); // Format "monde:region"
+        blacklist = List.copyOf(config.getStringList("Blacklist"));
+    }
+
+    /** messages.yml, créé s'il manque ; une clé absente du fichier reprend le texte livré avec le plugin. */
+    private YamlConfiguration loadMessages(File file) {
+        if (!file.exists()) {
+            saveResource("messages.yml", false);
+        }
+        return withDefaults(YamlConfiguration.loadConfiguration(file));
+    }
+
+    private YamlConfiguration withDefaults(YamlConfiguration loaded) {
+        try (InputStreamReader defaults = new InputStreamReader(getResource("messages.yml"), StandardCharsets.UTF_8)) {
+            loaded.setDefaults(YamlConfiguration.loadConfiguration(defaults));
+        } catch (IOException | RuntimeException e) {
+            getLogger().warning("Textes livrés avec le plugin illisibles : " + e.getMessage());
+        }
+        return loaded;
+    }
+
+    private void send(CommandSender to, String key, String... replacements) {
+        String text = messages.getString(key, "");
+        for (int i = 0; i + 1 < replacements.length; i += 2) {
+            text = text.replace("{" + replacements[i] + "}", replacements[i + 1]);
+        }
+        to.sendMessage(ChatColor.translateAlternateColorCodes('&', text));
+    }
+
+    // /shtempblocks : sous-commandes, chacune avec sa permission (shtempblocks.admin les donne toutes)
+    private static final List<String> SUBCOMMANDS = List.of("reload");
+
+    private static boolean canUse(CommandSender sender, String subCommand) {
+        return sender.hasPermission("shtempblocks.admin." + subCommand);
+    }
+
+    private List<String> allowed(CommandSender sender) {
+        return SUBCOMMANDS.stream().filter(sub -> canUse(sender, sub)).toList();
+    }
+
+    @Override
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        List<String> allowed = allowed(sender);
+        if (allowed.isEmpty()) {
+            send(sender, "no-permission");
+            return true;
+        }
+        if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
+            reload(sender);
+            return true;
+        }
+        send(sender, "usage", "subcommands", String.join("|", allowed));
+        return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length != 1) {
+            return List.of();
+        }
+        String typed = args[0].toLowerCase(Locale.ROOT);
+        return allowed(sender).stream().filter(sub -> sub.startsWith(typed)).toList();
+    }
+
+    /**
+     * Relit config.yml et messages.yml. Les deux fichiers sont lus avant tout remplacement : s'ils ne sont pas
+     * lisibles, l'ancienne configuration reste en place. temp_blocks.yml (blocs en cours) n'est pas touché.
+     */
+    private void reload(CommandSender sender) {
+        File configFile = new File(getDataFolder(), "config.yml");
+        File messagesFile = new File(getDataFolder(), "messages.yml");
+        YamlConfiguration newConfig = new YamlConfiguration();
+        YamlConfiguration newMessages = new YamlConfiguration();
+        if (!messagesFile.exists()) {
+            saveResource("messages.yml", false);
+        }
+        for (Object[] entry : new Object[][]{{configFile, newConfig}, {messagesFile, newMessages}}) {
+            File file = (File) entry[0];
+            try {
+                ((YamlConfiguration) entry[1]).load(file);
+            } catch (IOException | InvalidConfigurationException e) {
+                String error = String.valueOf(e.getMessage()).replaceAll("\\s+", " ").trim();
+                getLogger().warning(file.getName() + " illisible, configuration inchangée : " + error);
+                send(sender, "reload-error", "file", file.getName(), "error", error);
+                return;
+            }
+        }
+        applyConfig(newConfig);
+        messages = withDefaults(newMessages);
+        send(sender, "reloaded", "regions", String.valueOf(regions.size()),
+            "blocked", String.valueOf(blacklist.size()), "delay", String.valueOf(delay));
     }
 
     @Override

@@ -22,13 +22,27 @@ Utilisé sur : **Opale**.
 
 - Obligatoires : `WorldGuard`
 
+## Commandes
+
+| Commande | Description | Permission |
+|---|---|---|
+| `/shtempblocks reload` | Relit `config.yml` et `messages.yml`. `Delay` ne vaut que pour les blocs posés après le rechargement ; un fichier illisible laisse l'ancienne configuration en place. | `shtempblocks.admin.reload` |
+
+## Permissions
+
+| Permission | Description | Par défaut |
+|---|---|---|
+| `shtempblocks.admin` | Toutes les sous-commandes de `/shtempblocks`. | `op` |
+| `shtempblocks.admin.reload` | Recharger la configuration. | `op` |
+
 ## Configuration
 
 Fichiers par défaut repris du serveur (secrets remplacés par `CHANGE_ME`). Cliquez sur un fichier pour l'ouvrir :
 
 <pre>
 plugins/SHTempBlocks/
-└── <a href="src/main/resources/config.yml">config.yml</a>
+├── <a href="src/main/resources/config.yml">config.yml</a>
+└── <a href="src/main/resources/messages.yml">messages.yml</a>
 </pre>
 
 ## Compilation
